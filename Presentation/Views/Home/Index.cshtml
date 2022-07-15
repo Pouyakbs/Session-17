@@ -1,0 +1,208 @@
+﻿
+@{
+      ViewData["Title"] = "Home Page";
+}
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title></title>
+    <link href="~/css/bootstrap.css" rel="stylesheet" />
+</head>
+<body>
+    <div class="container">
+        <h2>Students Record</h2>
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#myModal" onclick="clearTextBox()">Add New Student</button><br /><br />
+    </div>
+    <div class="modal" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">×</button>
+                    <h4 class="modal-title" id="myModalLabel">Add Student</h4>
+                </div>
+                <div class="modal-body">
+                    <form method="post">
+                        <div class="form-group">
+                            <label>ID</label>
+                            <input type="text" class="form-control" name="studentId" id="studentId" placeholder="Id" disabled="disabled" />
+                        </div>
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input type="text" class="form-control" name="name" id="name" placeholder="Name" />
+                        </div>
+                        <div class="form-group">
+                            <label>Surname</label>
+                            <input type="text" class="form-control" name="surname" id="surname" placeholder="Surname" />
+                        </div>
+                        <div class="form-group">
+                            <label>Age</label>
+                            <input type="text" class="form-control" name="age" id="age" placeholder="Age" />
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" href="#" class="btn btn-primary" id="btnAdd" onclick="return Add();">Add</button>
+                    <button type="submit" value="submit" class="btn btn-primary" id="btnUpdate" style="display:none;" onclick="UpdateStudent();">Update</button>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <button onclick="loadStudents()">loadData</button>
+    <div id="student"></div>
+    <script>
+        function loadStudents() {
+            let xhr = new XMLHttpRequest();
+            xhr.open('GET', '/home/LoadData');
+            xhr.send();
+
+            xhr.onload = function () {
+                if (xhr.status != 200 && xhr.readyState != 4) {
+                    alert(`Error ${xhr.status}: ${xhr.statusText}`);
+                }
+                else {
+                    document.getElementById("student").innerHTML = ""
+                    let obj = JSON.parse(xhr.response)
+
+                    var table = document.createElement("table"), row, cellName, cellSurname, cellAge, cellAction;
+                    table.classList.add("table");
+                    table.classList.add("border");
+
+
+                    header = table.createTHead()
+                    var hrow = header.insertRow();
+                    var hNamecell = hrow.insertCell();
+                    var hSurnamecell = hrow.insertCell();
+                    var hAgecell = hrow.insertCell();
+                    var hActioncell = hrow.insertCell();
+
+                    hNamecell.innerHTML = "Name"
+                    hSurnamecell.innerHTML = "Surname"
+                    hAgecell.innerHTML = "Age"
+                    hActioncell.innerHTML = "Action"
+
+                    document.getElementById("student").appendChild(table);
+                    for (var i = 0; i < obj.length; i++) {
+
+                        row = table.insertRow();
+                        cellName = row.insertCell();
+                        cellSurname = row.insertCell();
+                        cellAge = row.insertCell();
+                        cellAction = row.insertCell();
+
+                        cellName.innerHTML = obj[i].name
+                        cellSurname.innerHTML = obj[i].surname
+                        cellAge.innerHTML = obj[i].age
+                        cellAction.innerHTML += '<a href="#" onclick="getbyID(' + obj[i].studentId + ')" class="btn btn-warning">Edit</a> | <a href="#" onclick="DeleteStudents(' + obj[i].studentId + ')" class="btn btn-danger">Delete</a>'
+                    }
+
+                }
+            };
+        }
+        function getbyID(ID) {
+            $('#name').css('border-color', 'lightgrey');
+            $('#surname').css('border-color', 'lightgrey');
+            $('#age').css('border-color', 'lightgrey');
+            $.ajax({
+                url: "/Home/EditStudent/" + ID,
+                typr: "GET",
+                contentType: "application/json;charset=UTF-8",
+                dataType: "json",
+                success: function (result) {
+                    $('#studentId').val(result.studentId);
+                    $('#name').val(result.name);
+                    $('#surname').val(result.surname);
+                    $('#age').val(result.age);
+
+                    $("#myModal").modal("show");
+                    $('#btnUpdate').show();
+                    $('#btnAdd').hide();
+                },
+                error: function (errormessage) {
+                    alert(errormessage.responseText);
+                }
+            });
+            return false;
+
+        }
+        function DeleteStudents(ID) {
+            var ans = confirm("Are you sure you want to delete this Record?");
+            if (ans) {
+                $.ajax({
+                    url: "/Home/Delete/" + ID,
+                    type: "POST",
+                    contentType: "application/json;charset=UTF-8",
+                    dataType: "json",
+                    success: function (result) {
+                        loadStudents();
+                    },
+                    error: function (errormessage) {
+                        alert(errormessage.responseText);
+                    }
+                });
+            }
+
+        }
+
+        function UpdateStudent() {
+            var studentDTO = {
+                StudentId: $('#studentId').val(),
+                Name: $('#name').val().toString(),
+                Surname: $('#surname').val(),
+                Age: $('#age').val(),
+            };
+            console.log(studentDTO)
+            $.ajax({
+                url: "/Home/EditStudent/",
+                type: 'POST',
+                data: studentDTO,
+                success: function (result) {
+                    loadStudents();
+                    $('#myModal').modal('hide');
+                    $('#studentId').val("");
+                    $('#name').val("");
+                    $('#surname').val("");
+                    $('#age').val("");
+                },
+                error: function (errormessage) {
+                    alert(errormessage.responseText);
+                }
+            });
+        }
+        function Add() {
+            var student = {
+                StudentId: $('#studentId').val(),
+                Name: $('#name').val(),
+                surname: $('#surname').val(),
+                Age: $('#age').val(),
+            };
+            $.ajax({
+                url: "/Home/Create",
+                data: student,
+                type: "POST",
+                success: function (result) {
+                    loadStudents();
+                    $('#myModal').modal('hide');
+                    $('#studentId').val("");
+                    $('#name').val("");
+                    $('#surname').val("");
+                    $('#age').val("");
+                },
+                error: function (errormessage) {
+                    alert(errormessage.responseText);
+                }
+            });
+        }
+        function clearTextBox() {
+            $('#studentId').val("");
+            $('#name').val("");
+            $('#surname').val("");
+            $('#age').val("");
+            $('#btnUpdate').hide();
+            $('#btnAdd').show();
+            $('#name').css('border-color', 'lightgrey');
+            $('#surname').css('border-color', 'lightgrey');
+            $('#age').css('border-color', 'lightgrey');
+        }
+    </script>
+</body>
+</html>
